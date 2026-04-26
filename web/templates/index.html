@@ -5,10 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Team Face Recognition</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+  <style>
+    /* overlay canvas sits exactly on top of the video */
+    .video-wrapper {
+      position: relative;
+    }
+    #canvas-overlay {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;   /* clicks pass through to video */
+      z-index: 10;
+    }
+    #canvas-capture { display: none; }
+  </style>
 </head>
 <body>
 
-  <!-- ── Header ── -->
   <header class="header">
     <div class="header-inner">
       <div class="logo">
@@ -25,7 +38,6 @@
     </div>
   </header>
 
-  <!-- ── Main ── -->
   <main class="main">
 
     {% if not model_ready %}
@@ -34,7 +46,6 @@
     </div>
     {% endif %}
 
-    <!-- ── Tab switcher ── -->
     <div class="tabs">
       <button class="tab active" data-tab="camera" onclick="switchTab('camera')">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -51,17 +62,24 @@
       </button>
     </div>
 
-    <!-- ═══════════════ CAMERA TAB ═══════════════ -->
+    <!-- ═══ CAMERA TAB ═══ -->
     <div id="tab-camera" class="tab-panel active">
       <div class="card">
         <div class="card-header">
           <h2>Live Camera Recognition</h2>
-          <p>Point your camera at a team member and click <strong>Recognize</strong></p>
+          <p>Point your camera at a team member — boxes appear automatically</p>
         </div>
 
+        <!-- video + transparent overlay canvas stacked -->
         <div class="video-wrapper">
           <video id="video" autoplay playsinline muted></video>
-          <canvas id="canvas-camera" style="display:none;"></canvas>
+
+          <!-- overlay: bounding boxes drawn here in real-time -->
+          <canvas id="canvas-overlay"></canvas>
+
+          <!-- hidden canvas used only to grab frames -->
+          <canvas id="canvas-capture"></canvas>
+
           <div class="video-overlay" id="camera-overlay">
             <div class="overlay-content">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -72,10 +90,10 @@
           </div>
         </div>
 
-        <div class="result-panel" id="camera-result" style="display:none;">
-          <img id="camera-result-img" alt="Recognition result" />
-          <div id="camera-names" class="names-list"></div>
-        </div>
+        <!-- status + name chips below the video -->
+        <p id="live-status" style="display:none; margin-top:8px; font-size:0.85rem;
+           color:#6b7280; text-align:center;"></p>
+        <div id="camera-names" class="names-list" style="margin-top:8px;"></div>
 
         <div class="actions">
           <button class="btn btn-secondary" id="btn-start-camera" onclick="startCamera()">
@@ -83,12 +101,6 @@
               <path d="M23 7l-7 5 7 5V7z"/><rect x="1" y="5" width="15" height="14" rx="2" ry="2"/>
             </svg>
             Start Camera
-          </button>
-          <button class="btn btn-primary" id="btn-recognize-camera" onclick="recognizeFromCamera()" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-            </svg>
-            Recognize
           </button>
           <button class="btn btn-danger" id="btn-stop-camera" onclick="stopCamera()" style="display:none;">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -98,13 +110,10 @@
           </button>
         </div>
 
-        <div class="loading" id="camera-loading" style="display:none;">
-          <div class="spinner"></div> Recognizing…
-        </div>
       </div>
     </div>
 
-    <!-- ═══════════════ UPLOAD TAB ═══════════════ -->
+    <!-- ═══ UPLOAD TAB ═══ -->
     <div id="tab-upload" class="tab-panel">
       <div class="card">
         <div class="card-header">
@@ -167,7 +176,6 @@
 
   </main>
 
-  <!-- ── Footer ── -->
   <footer class="footer">
     Team Face Recognition · Powered by <code>face_recognition</code> + KNN
   </footer>
